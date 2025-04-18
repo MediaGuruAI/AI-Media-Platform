@@ -1,0 +1,15 @@
+streamlit
+openai
+moviepy
+google-genai
+google-cloud-videointelligence
+google-cloud-vision
+boto3
+openai-whisper
+google-generativeai
+google-cloud-videointelligence
+google-cloud-vision
+pillow
+opencv-python
+google-cloud-speech
+firebase-admin
