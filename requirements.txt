@@ -17,4 +17,4 @@ firebase-admin
 pinecone
 librosa
 speechbrain
-azure-cognitiveservice-speech
+azure-cognitiveservices-speech
