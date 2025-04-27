@@ -95,7 +95,7 @@ class VisionMetaData:
         
         return tags, response
     
-    def _aws_celebrity_detection(self, image_content: bytes) -> Dict:
+    def aws_celebrity_detection(self, image_content: bytes) -> Dict:
         """Detect celebrities using AWS Rekognition"""
         response = self.rekognition_client.recognize_celebrities(
             Image={'Bytes': image_content}
@@ -119,6 +119,8 @@ class VisionMetaData:
     def get_image_metadata(self, imageData):
         # Prepare the prompt for OpenAI
         vision_data, _ = self.analyze_image(imageData)
+        celebrity_face_data = self.aws_celebrity_detection(imageData)
+        print(celebrity_face_data)
         print(vision_data)
         prompt = f"""
         Based on the following image analysis from Google Vision API:
@@ -132,6 +134,8 @@ class VisionMetaData:
         Use matching page titles to create a better summarized description. Don't add unecessary detials that dont make sense. Don't assume anything if it is not happening from image data.
         Exclude trivial details like facial features unless they are iconic (e.g., a celebrity's beard).
         4. **Main Persons**: List the main persons/celebrities from 'web_entities' or 'matching_page_titles'. If none, state 'None'.
+        Do not add repeated persons. Also use {celebrity_face_data} and for name which is relevant to the context
+        add them to main persons list. Don't add any name that is irrelevant
         5. **Metadata Tags**: Provide ONLY highly relevant tags for searchability (e.g., event name, main persons, location). Exclude generic tags like 'beard' or 'sleeve'.
 
         Format your response as a JSON object with these exact keys:
@@ -178,11 +182,9 @@ if __name__=="__main__":
     from PIL import Image
     import io
     imageMetaData = VisionMetaData(credentials_path="E:\\my_documents\\demoproject-455507-4848ed3c5d27.json")
-
-    
     img = Image.open("media-processing-test-images\\Screenshot 2025-04-18 223127.jpg")    
     buffer = io.BytesIO()
     img.save(buffer, format="JPEG")
     face_content = buffer.getvalue()
 
-    imageJsonData = imageMetaData._aws_celebrity_detection(face_content)
+    imageJsonData = imageMetaData.aws_celebrity_detection(face_content)
