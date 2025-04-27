@@ -1,11 +1,36 @@
 import streamlit as st
-import json
+import json, tempfile
 import io
 from PIL import Image
 from vision_pipeline import VisionMetaData
 
+# Configuration & Clients Setup
+# Google Cloud Setup
+google_credentials = st.secrets["google_cloud"]
+credentials_dict = {
+    "type": "service_account",
+    "project_id": google_credentials["project_id"],
+    "private_key_id": google_credentials["private_key_id"],
+    "private_key": google_credentials["private_key"].replace('\\n', '\n'),
+    "client_email": google_credentials["client_email"],
+    "client_id": google_credentials["client_id"],
+    "auth_uri": google_credentials["auth_uri"],
+    "token_uri": google_credentials["token_uri"],
+    "auth_provider_x509_cert_url": google_credentials["auth_provider_x509_cert_url"],
+    "client_x509_cert_url": google_credentials["client_x509_cert_url"]
+}
+
+with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".json") as temp_file:
+    json.dump(credentials_dict, temp_file)
+    temp_file_path = temp_file.name
+openai_apikey=st.secrets["OPENAI_API_KEY"]
+aws_access_key=st.secrets["AWS_ACCESS_KEY"]
+aws_secret_key=st.secrets["AWS_SECRET_KEY"]
 # Initialize the vision processor
-imageDataExtractor = VisionMetaData(credentials_path="streamlit_app\\demoproject-455507-4848ed3c5d27.json")
+imageDataExtractor = VisionMetaData(credentials_path=temp_file_path, 
+                                    openai_api_key=openai_apikey,
+                                    aws_access_key=aws_access_key,
+                                    aws_secret_key=aws_secret_key)
 
 def display_image_preview(file_obj):
     if file_obj is None:
@@ -40,11 +65,11 @@ def process_vision_file(file_obj):
 st.set_page_config(layout="wide")
 st.title("🎨 Vision File Processor")
 
-# Initialize session state variables
-if 'processing_result' not in st.session_state:
-    st.session_state.processing_result = None
-if 'status' not in st.session_state:
-    st.session_state.status = None
+# Change all st.session_state references to use 'audio_' prefix
+if 'audio_processing_result' not in st.session_state:
+    st.session_state.audio_processing_result = None
+if 'audio_status' not in st.session_state:
+    st.session_state.audio_status = None
 
 
 col1, col2 = st.columns(2)
@@ -64,32 +89,32 @@ with col1:
         if file is not None:
             with st.spinner(f"Processing {file.name}..."):
                 result = process_vision_file(file)
-                st.session_state.processing_result = result
-                st.session_state.status = f"✅ Successfully processed file: {file.name}"
+                st.session_state.audio_processing_result = result
+                st.session_state.audio_status = f"✅ Successfully processed file: {file.name}"
             st.rerun()  # Refresh to show results
         else:
-            st.session_state.status = "⚠️ Please upload a file first"
+            st.session_state.audio_status = "⚠️ Please upload a file first"
             st.rerun()
 
 with col2:
     st.subheader("Processing Results")
     
     # Check processing status
-    if st.session_state.status:
-        if st.session_state.status.startswith("✅"):
-            st.success(st.session_state.status)
+    if st.session_state.audio_status:
+        if st.session_state.audio_status.startswith("✅"):
+            st.success(st.session_state.audio_status)
         else:
-            st.warning(st.session_state.status)
+            st.warning(st.session_state.audio_status)
     
-    if st.session_state.processing_result:
-        st.json(st.session_state.processing_result)
+    if st.session_state.audio_processing_result:
+        st.json(st.session_state.audio_processing_result)
         
         st.download_button(
             label="Download Results as JSON",
-            data=json.dumps(st.session_state.processing_result, indent=2),
+            data=json.dumps(st.session_state.audio_processing_result, indent=2),
             file_name="vision_results.json",
             mime="application/json",
             key="vision_download"
         )
-    elif not st.session_state.status:
+    elif not st.session_state.audio_status:
         st.info("No results to display yet. Upload an image and click 'Process Image'.")

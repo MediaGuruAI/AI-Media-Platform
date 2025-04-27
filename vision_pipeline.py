@@ -5,25 +5,33 @@ import json
 import dotenv
 import os
 from typing import List, Dict, Union
+import boto3
 # from PIL import Image
 # from io import BytesIO
-
-config = dotenv.load_dotenv()
+# config = dotenv.load_dotenv()
 
 class VisionMetaData:
-    def __init__(self, credentials_path: str, model_name: str = "gpt-4o"):
+    def __init__(self, credentials_path: str, openai_api_key, aws_access_key, aws_secret_key, 
+                 model_name: str = "gpt-4o"):
         """Initialize the Vision API client with credentials"""
         self.credentials = service_account.Credentials.from_service_account_file(credentials_path)
-        self.openai_client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        self.openai_client = openai.OpenAI(api_key=openai_api_key)
         self.client = vision.ImageAnnotatorClient(credentials=self.credentials)
         self.model_name = model_name
-    
+                # AWS Rekognition Client
+        self.rekognition_client = boto3.client(
+            'rekognition',
+            aws_access_key_id=aws_access_key,
+            aws_secret_access_key=aws_secret_key,
+            region_name='us-east-1'  # Change to your preferred region
+        )
+
+
     def analyze_image(self, content : bytes) -> Dict[str, Union[List[str], Dict]]:
         """
         Perform comprehensive image analysis including:
         - Object recognition
         - Scene detection
-        - Facial recognition
         - Text detection
         - Web entities
         """
@@ -35,7 +43,6 @@ class VisionMetaData:
         # Configure all features we want to detect
         features = [
             {'type_': vision.Feature.Type.LABEL_DETECTION},       # Objects/scenes
-            {'type_': vision.Feature.Type.FACE_DETECTION},       # Faces
             {'type_': vision.Feature.Type.LOGO_DETECTION},       # Logos
             {'type_': vision.Feature.Type.TEXT_DETECTION},       # OCR
             {'type_': vision.Feature.Type.WEB_DETECTION},        # Web entities
@@ -75,7 +82,7 @@ class VisionMetaData:
         if hasattr(response, 'web_detection'):
             tags['web_entities'] = [
                 entity.description for entity in response.web_detection.web_entities
-                if entity.score >= 0.5
+                if entity.score >= 0.6
             ]
             matching_urls = response.web_detection.pages_with_matching_images
             page_titles = []
@@ -87,6 +94,26 @@ class VisionMetaData:
                 tags['matching_page_titles'] = page_titles
         
         return tags, response
+    
+    def _aws_celebrity_detection(self, image_content: bytes) -> Dict:
+        """Detect celebrities using AWS Rekognition"""
+        response = self.rekognition_client.recognize_celebrities(
+            Image={'Bytes': image_content}
+        )
+        
+        celebrities = []
+        for celebrity in response.get('CelebrityFaces', []):
+            celeb_info = {
+                'name': celebrity['Name'],
+                'confidence': celebrity['MatchConfidence'],
+                'urls': celebrity.get('Urls', [])
+            }
+            celebrities.append(celeb_info)
+        
+        return {
+            'celebrity_faces': celebrities,
+            'unrecognized_faces': len(response.get('UnrecognizedFaces', []))
+        }
 
     # Initialize OpenAI client (make sure to set your API key)
     def get_image_metadata(self, imageData):
@@ -147,6 +174,15 @@ class VisionMetaData:
             return {"error": str(e)}
 
 
-# if __name__=="__main__":
-#     imageMetaData = VisionMetaData(credentials_path="E:\\my_documents\\demoproject-455507-4848ed3c5d27.json")
-#     imageJsonData = imageMetaData.get_image_metadata("images.jfif")
+if __name__=="__main__":
+    from PIL import Image
+    import io
+    imageMetaData = VisionMetaData(credentials_path="E:\\my_documents\\demoproject-455507-4848ed3c5d27.json")
+
+    
+    img = Image.open("media-processing-test-images\\Screenshot 2025-04-18 223127.jpg")    
+    buffer = io.BytesIO()
+    img.save(buffer, format="JPEG")
+    face_content = buffer.getvalue()
+
+    imageJsonData = imageMetaData._aws_celebrity_detection(face_content)

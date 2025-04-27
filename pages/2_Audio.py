@@ -2,14 +2,18 @@ import streamlit as st
 import json
 import io
 from pathlib import Path
-from audio_pipeline2 import get_audio_data
+from audio_pipeline import get_audio_data
+
+openai_api_key = st.secrets["OPENAI_API_KEY"]
+azure_key = st.secrets['AZURE_API_KEY']
+azure_region = st.secrets['AZURE_API_REGION']
 
 def process_audio_file(filename):
     """Wrapper function for audio processing to be run in background"""
     try:
         # Save the file temporarily if needed by your audio processing
         # Or modify get_audio_data to work with bytes directly
-        return get_audio_data(filename)
+        return get_audio_data(filename, openai_api_key, azure_key, azure_region)
     except Exception as e:
         raise Exception(f"Audio processing error: {str(e)}")
 
@@ -79,12 +83,12 @@ with col2:
     if st.session_state.processing_result:
         st.json(st.session_state.processing_result)
         
-        st.download_button(
-            label="Download Audio Analysis (JSON)",
-            data=json.dumps(st.session_state.processing_result, indent=2),
-            file_name=f"audio_results_{file.name.split('.')[0]}.json",
-            mime="application/json",
-            key="audio_download"
-        )
+        # st.download_button(
+        #     label="Download Audio Analysis (JSON)",
+        #     data=json.dumps(st.session_state.processing_result, indent=2),
+        #     file_name=f"audio_results_{file.name.split('.')[0]}.json",
+        #     mime="application/json",
+        #     key="audio_download"
+        # )
     elif not st.session_state.status:
         st.info("No results to display yet. Upload an audio file and click 'Process Audio'.")
