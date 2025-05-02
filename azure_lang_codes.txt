@@ -1,7 +1,7 @@
 af: Afrikaans: af-ZA
 sq: Albanian: sq-AL
 am: Amharic: am-ET
-ar: Arabic: ar-JO,ar-EG,ar-JO,ar-LB,ar-MA,ar-SA,
+ar: Arabic: ar-SA,ar-EG,ar-JO,ar-LB,ar-MA
 hy: Armenian: hy-AM
 as: Assamese: as-IN
 az: Azerbaijani: az-AZ

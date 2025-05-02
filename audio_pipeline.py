@@ -20,8 +20,12 @@ import threading
 import math
 os.environ["STREAMLIT_FILE_WATCHER_TYPE"] = "none"
 
+available_device = "cuda" if torch.cuda.is_available() else "cpu"
+
 ### Initialize model
-language_id_model = EncoderClassifier.from_hparams(source="speechbrain/lang-id-voxlingua107-ecapa", savedir="tmp")
+language_id_model = EncoderClassifier.from_hparams(source="speechbrain/lang-id-voxlingua107-ecapa",
+                                                    savedir="tmp",
+                                                    run_opts={"device": available_device})
 tmp_audio_path = "temp_audio.wav"
 tmp_transcript_file = "output.json"
 frequent_langauges_list = ["en-US", "de-DE", "es-CL", "ar-AE", 
@@ -392,17 +396,20 @@ def get_audio_data(audio_file, openai_api_key, azure_key, azure_region, save_pat
 
     ### perform language identification
     # fixed removal of 5 secs from start and end
-    if audio_time_length < 20:
+    if available_device == 'cuda':
         trim_size = 0
-    elif audio_time_length > 20 and audio_time_length < 40:
-        # remove 10 secs
-        trim_size = 160000
-    elif audio_time_length > 40 and audio_time_length < 180:
-        # remove 10 secs
-        trim_size = 160000
     else:
-        # remove 40 secs
-        trim_size = 640000
+        if audio_time_length < 20:
+            trim_size = 0
+        elif audio_time_length > 20 and audio_time_length < 40:
+            # remove 10 secs
+            trim_size = 160000
+        elif audio_time_length > 40 and audio_time_length < 180:
+            # remove 10 secs
+            trim_size = 160000
+        else:
+            # remove 40 secs
+            trim_size = 640000
     audio_segment = resampled_audio[0+trim_size: len(resampled_audio)-trim_size]
     # this can be modified to remove more minutes from longer audio
     audio_segment = torch.tensor(audio_segment) 
@@ -423,7 +430,6 @@ def get_audio_data(audio_file, openai_api_key, azure_key, azure_region, save_pat
     # print(f"The language of audio: {azure_language_code}")
     # sf.write(tmp_audio_path, resampled_audio, audio_sr, subtype='PCM_16')   
     chunk_names = create_audio_chunks(resampled_audio, audio_sr)
-    
     # saved_outputs = process_audio_chunks(chunks_names)
     
     if multi_lingual_audio:
@@ -449,12 +455,7 @@ def get_audio_data(audio_file, openai_api_key, azure_key, azure_region, save_pat
     json_speech_metadata = json.dumps(json_speech_metadata, indent=1, ensure_ascii=False)
     # with open(save_path, 'w', encoding='utf-8') as fh:
     #     fh.write(json.dumps(json_speech_metadata, ascii=False, indent=1))
-    ## remove tmp files
-    # for chunk in range(chunk_names):
-    #     os.remove(chunk)
-    # for tmpoutputfile in range(saved_outputs):
-    #     os.remove(tmpoutputfile)
-    # os.remove(tmp_transcript_file)
+
     return json_speech_metadata
 
 if __name__=="__main__":

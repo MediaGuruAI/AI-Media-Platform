@@ -1,8 +1,9 @@
 import streamlit as st
-import json, tempfile
+import json, tempfile, os
 import io
 from PIL import Image
 from vision_pipeline import VisionMetaData
+from pathlib import Path
 
 # Configuration & Clients Setup
 # Google Cloud Setup
@@ -27,6 +28,11 @@ openai_apikey=st.secrets["OPENAI_API_KEY"]
 aws_access_key=st.secrets["AWS_ACCESS_KEY"]
 aws_secret_key=st.secrets["AWS_SECRET_KEY"]
 # Initialize the vision processor
+
+# Create results directory if it doesn't exist
+RESULTS_DIR = "image_results"
+os.makedirs(RESULTS_DIR, exist_ok=True)
+
 imageDataExtractor = VisionMetaData(credentials_path=temp_file_path, 
                                     openai_api_key=openai_apikey,
                                     aws_access_key=aws_access_key,
@@ -51,12 +57,42 @@ def display_image_preview(file_obj):
     except Exception as e:
         st.error(f"Error displaying preview: {str(e)}")
 
+
+def get_result_filename(image_filename):
+    """Generate the result filename with audio tags directory"""
+    base_name = Path(image_filename).stem
+    return os.path.join(RESULTS_DIR, f"{base_name}.json")
+
+def load_existing_result(image_filename):
+    """Check if result already exists and load it"""
+    result_file = get_result_filename(image_filename)
+    if os.path.exists(result_file):
+        with open(result_file, 'r') as f:
+            return json.load(f)
+    return None
+
+def save_result(image_filename, result):
+    """Save the result to a JSON file with same name as image"""
+    result_file = get_result_filename(image_filename)
+    with open(result_file, 'w') as f:
+        json.dump(result, f, indent=2)
+
+
 def process_vision_file(file_obj):
     if file_obj is None:
         return {"error": "No file uploaded"}
     
     try:
-        return imageDataExtractor.get_image_metadata(file_obj.getvalue())
+        # First check if we already have results for this file
+        result_file = get_result_filename(file_obj.name)
+        if os.path.exists(result_file):
+            with open(result_file, 'r') as f:
+                return json.load(f)
+        
+        result = imageDataExtractor.get_image_metadata(file_obj.getvalue())
+        # Save the result for future use
+        save_result(file_obj.name, result)
+        return result
     except Exception as e:
         return {"error": str(e)}
 

@@ -1,6 +1,5 @@
 import streamlit as st
-import json
-import io
+import json, os
 from pathlib import Path
 from audio_pipeline import get_audio_data
 
@@ -8,12 +7,33 @@ openai_api_key = st.secrets["OPENAI_API_KEY"]
 azure_key = st.secrets['AZURE_API_KEY']
 azure_region = st.secrets['AZURE_API_REGION']
 
-def process_audio_file(filename):
+# Create results directory if it doesn't exist
+RESULTS_DIR = "audio_results"
+os.makedirs(RESULTS_DIR, exist_ok=True)
+
+def get_result_filename(audio_filename):
+    """Generate the result filename with audio tags directory"""
+    base_name = Path(audio_filename).stem
+    return os.path.join(RESULTS_DIR, f"{base_name}.json")
+
+def process_audio_file(file_obj):
     """Wrapper function for audio processing to be run in background"""
     try:
-        # Save the file temporarily if needed by your audio processing
-        # Or modify get_audio_data to work with bytes directly
-        return get_audio_data(filename, openai_api_key, azure_key, azure_region)
+        # Check if result already exists
+        result_filename = get_result_filename(file_obj.name)
+        if os.path.exists(result_filename):
+            print('Loading from local storage')
+            with open(result_filename, 'r') as f:
+                return json.load(f)
+        
+        # Process the audio file
+        result = get_audio_data(file_obj, openai_api_key, azure_key, azure_region)
+        
+        # Save the result
+        with open(result_filename, 'w') as f:
+            json.dump(result, f, indent=2)
+            
+        return result
     except Exception as e:
         raise Exception(f"Audio processing error: {str(e)}")
 

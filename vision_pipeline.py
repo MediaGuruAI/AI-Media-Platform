@@ -135,7 +135,8 @@ class VisionMetaData:
         Exclude trivial details like facial features unless they are iconic (e.g., a celebrity's beard).
         4. **Main Persons**: List the main persons/celebrities from 'web_entities' or 'matching_page_titles'. If none, state 'None'.
         Do not add repeated persons. Also use {celebrity_face_data} and for name which is relevant to the context
-        add them to main persons list. Don't add any name that is irrelevant
+        add them to main persons list. You can also use 'text' field from the analysis data and get relevant persons
+        Don't add any name that is irrelevant from any source if it's not a persons name.
         5. **Metadata Tags**: Provide ONLY highly relevant tags for searchability (e.g., event name, main persons, location). Exclude generic tags like 'beard' or 'sleeve'.
 
         Format your response as a JSON object with these exact keys:
