@@ -13,6 +13,112 @@ import json
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from moviepy.video.io.ImageSequenceClip import ImageSequenceClip
 
+# Page Config - Set initial sidebar state to collapsed
+st.set_page_config(
+    page_title="Audio Processor",
+    page_icon="🎵",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+# Custom CSS for dark theme matching main page
+st.markdown("""
+<style>
+    /* Main page styling */
+    [data-testid="stAppViewContainer"] {
+        background: linear-gradient(135deg, #0f0c29, #302b63, #24243e) !important;
+        color: white !important;
+    }
+    
+    /* Hide the default sidebar navigation */
+    [data-testid="stSidebarNav"] {
+        display: none;
+    }
+    
+    /* Title styling */
+    .title {
+        font-size: 2.5rem !important;
+        font-weight: 800;
+        background: linear-gradient(90deg, #4ecdc4, #88f3e8);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Card styling */
+    .card {
+        background: rgba(255, 255, 255, 0.1) !important;
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        padding: 20px;
+    }
+    
+    /* Button styling */
+    .stButton>button {
+        border: 2px solid #4ecdc4 !important;
+        background: transparent !important;
+        color: white !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    .stButton>button:hover {
+        background: #4ecdc4 !important;
+    }
+    
+    /* File uploader styling */
+    .stFileUploader>div>div>div>div {
+        color: white !important;
+    }
+    
+    /* JSON viewer styling */
+    .stJson {
+        background: rgba(0, 0, 0, 0.2) !important;
+        border-radius: 10px !important;
+        padding: 15px !important;
+    }
+            
+        [data-testid="stSidebar"] {
+        background: rgba(15, 12, 41, 0.9) !important;
+        border-right: 1px solid rgba(255, 107, 107, 0.2) !important;
+    }
+
+    [data-testid="stSidebar"] .st-emotion-cache-16txtl3 {
+        padding: 2rem 1rem !important;
+    }
+
+    [data-testid="stSidebar"] h2 {
+        color: #ff6b6b !important;
+    }
+
+    [data-testid="stSidebar"] a {
+        color: rgba(255, 255, 255, 0.8) !important;
+        text-decoration: none !important;
+        display: block;
+        padding: 0.5rem 0;
+    }
+
+    [data-testid="stSidebar"] a:hover {
+        color: #ff6b6b !important;
+    }
+
+    .sidebar-toggle {
+        position: fixed;
+        left: 10px;
+        top: 10px;
+        z-index: 999999;
+        background: rgba(15, 12, 41, 0.9) !important;
+        border: 1px solid #ff6b6b !important;
+        color: white !important;
+        padding: 5px 10px !important;
+        border-radius: 5px !important;
+    }
+
+    .sidebar-toggle:hover {
+        background: #ff6b6b !important;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 
 # Configuration & Clients Setup
@@ -117,6 +223,11 @@ os.makedirs(PROMO_DIR, exist_ok=True)
 
 #Webapp title
 st.title("🎬 AI Video Analyzer")
+
+# Back button
+if st.button("← Back to Main Page"):
+    st.switch_page("app.py")
+
 
 # Session defaults
 st.session_state.setdefault("uploaded", None)

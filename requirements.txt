@@ -18,3 +18,4 @@ pinecone
 librosa
 speechbrain
 azure-cognitiveservices-speech
+streamlit-extras

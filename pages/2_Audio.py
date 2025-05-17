@@ -3,6 +3,114 @@ import json, os
 from pathlib import Path
 from audio_pipeline import get_audio_data
 
+# Page Config - Set initial sidebar state to collapsed
+st.set_page_config(
+    page_title="Audio Processor",
+    page_icon="🎵",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+# Custom CSS for dark theme matching main page
+st.markdown("""
+<style>
+    /* Main page styling */
+    [data-testid="stAppViewContainer"] {
+        background: linear-gradient(135deg, #0f0c29, #302b63, #24243e) !important;
+        color: white !important;
+    }
+    
+    /* Hide the default sidebar navigation */
+    [data-testid="stSidebarNav"] {
+        display: none;
+    }
+    
+    /* Title styling */
+    .title {
+        font-size: 2.5rem !important;
+        font-weight: 800;
+        background: linear-gradient(90deg, #4ecdc4, #88f3e8);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Card styling */
+    .card {
+        background: rgba(255, 255, 255, 0.1) !important;
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        padding: 20px;
+    }
+    
+    /* Button styling */
+    .stButton>button {
+        border: 2px solid #4ecdc4 !important;
+        background: transparent !important;
+        color: white !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    .stButton>button:hover {
+        background: #4ecdc4 !important;
+    }
+    
+    /* File uploader styling */
+    .stFileUploader>div>div>div>div {
+        color: white !important;
+    }
+    
+    /* JSON viewer styling */
+    .stJson {
+        background: rgba(0, 0, 0, 0.2) !important;
+        border-radius: 10px !important;
+        padding: 15px !important;
+    }
+            
+    [data-testid="stSidebar"] {
+        background: rgba(15, 12, 41, 0.9) !important;
+        border-right: 1px solid rgba(255, 107, 107, 0.2) !important;
+    }
+
+    [data-testid="stSidebar"] .st-emotion-cache-16txtl3 {
+        padding: 2rem 1rem !important;
+    }
+
+    [data-testid="stSidebar"] h2 {
+        color: #ff6b6b !important;
+    }
+
+    [data-testid="stSidebar"] a {
+        color: rgba(255, 255, 255, 0.8) !important;
+        text-decoration: none !important;
+        display: block;
+        padding: 0.5rem 0;
+    }
+
+    [data-testid="stSidebar"] a:hover {
+        color: #ff6b6b !important;
+    }
+
+    .sidebar-toggle {
+        position: fixed;
+        left: 10px;
+        top: 10px;
+        z-index: 999999;
+        background: rgba(15, 12, 41, 0.9) !important;
+        border: 1px solid #ff6b6b !important;
+        color: white !important;
+        padding: 5px 10px !important;
+        border-radius: 5px !important;
+    }
+
+    .sidebar-toggle:hover {
+        background: #ff6b6b !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Configuration
 openai_api_key = st.secrets["OPENAI_API_KEY"]
 azure_key = st.secrets['AZURE_API_KEY']
 azure_region = st.secrets['AZURE_API_REGION']
@@ -40,7 +148,6 @@ def process_audio_file(file_obj):
 def display_audio_preview(file_obj):
     """Display audio preview with error handling"""
     if file_obj is None:
-        st.warning("No file uploaded")
         return
     
     try:
@@ -54,9 +161,12 @@ def display_audio_preview(file_obj):
     except Exception as e:
         st.error(f"Error displaying preview: {str(e)}")
 
-# Streamlit UI
-st.set_page_config(layout="wide")
-st.title("🎵 Audio File Processor")
+# Main UI
+st.markdown('<h1 class="title">🎵 Audio File Processor</h1>', unsafe_allow_html=True)
+
+# Back button
+if st.button("← Back to Main Page"):
+    st.switch_page("app.py")
 
 # Initialize session state variables
 if 'processing_result' not in st.session_state:
@@ -67,48 +177,53 @@ if 'status' not in st.session_state:
 col1, col2 = st.columns(2)
 
 with col1:
-    st.subheader("Upload Audio")
-    file = st.file_uploader(
-        "Upload audio file",
-        type=['mp3', 'wav', 'ogg', 'flac', 'm4a'],
-        key="audio_uploader"
-    )
-    
-    if file is not None:
-        display_audio_preview(file)
-    # Process button
-    if st.button("Process File", type="primary"):
+    with st.container():
+        st.subheader("Upload Audio")
+        file = st.file_uploader(
+            "Choose an audio file",
+            type=['mp3', 'wav', 'ogg', 'flac', 'm4a'],
+            key="audio_uploader",
+            label_visibility="collapsed"
+        )
+        
         if file is not None:
-            with st.spinner(f"Processing {file.name}..."):
-                result = process_audio_file(file)
-                st.session_state.processing_result = result
-                st.session_state.status = f"✅ Successfully processed file: {file.name}"
-            st.rerun()  # Refresh to show results
-        else:
-            st.session_state.status = "⚠️ Please upload a file first"
-            st.rerun()
+            display_audio_preview(file)
+        
+        if st.button("Process File", type="primary"):
+            if file is not None:
+                with st.spinner(f"Processing {file.name}..."):
+                    try:
+                        result = process_audio_file(file)
+                        st.session_state.processing_result = result
+                        st.session_state.status = f"✅ Successfully processed file: {file.name}"
+                    except Exception as e:
+                        st.session_state.status = f"❌ Error processing file: {str(e)}"
+                st.rerun()
+            else:
+                st.session_state.status = "⚠️ Please upload a file first"
+                st.rerun()
 
 with col2:
-    st.subheader("Processing Results")
-                
-    # Display status message
-    if st.session_state.status:
-        if st.session_state.status.startswith("✅"):
-            st.success(st.session_state.status)
-        else:
-            st.warning(st.session_state.status)
-    
-    
-    # Display results if available
-    if st.session_state.processing_result:
-        st.json(st.session_state.processing_result)
+    with st.container():
+        st.subheader("Processing Results")
         
-        # st.download_button(
-        #     label="Download Audio Analysis (JSON)",
-        #     data=json.dumps(st.session_state.processing_result, indent=2),
-        #     file_name=f"audio_results_{file.name.split('.')[0]}.json",
-        #     mime="application/json",
-        #     key="audio_download"
-        # )
-    elif not st.session_state.status:
-        st.info("No results to display yet. Upload an audio file and click 'Process Audio'.")
+        if st.session_state.status:
+            if st.session_state.status.startswith("✅"):
+                st.success(st.session_state.status)
+            elif st.session_state.status.startswith("❌"):
+                st.error(st.session_state.status)
+            else:
+                st.warning(st.session_state.status)
+        
+        if st.session_state.processing_result:
+            st.json(st.session_state.processing_result)
+            
+            st.download_button(
+                label="Download Results as JSON",
+                data=json.dumps(st.session_state.processing_result, indent=2),
+                file_name=f"audio_results_{Path(file.name).stem}.json",
+                mime="application/json",
+                key="audio_download"
+            )
+        elif not st.session_state.status:
+            st.info("No results to display yet. Upload an audio file and click 'Process Audio'.")
