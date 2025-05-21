@@ -239,6 +239,71 @@ st.session_state.setdefault("selected_scenes", [])
 st.session_state.setdefault("banner_path", None)
 st.session_state.setdefault("promo_path", None)
 st.session_state.setdefault("full_summary", None)
+st.session_state.setdefault("chunk_transcripts", None)
+
+def is_av1_encoded(video_path):
+    """Check if a video is AV1-encoded using FFmpeg."""
+    cmd = [
+        "ffprobe",
+        "-v", "error",
+        "-select_streams", "v:0",  # Check first video stream
+        "-show_entries", "stream=codec_name",
+        "-of", "default=nokey=1:noprint_wrappers=1",
+        video_path
+    ]
+    try:
+        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+        return result.stdout.strip().lower() == "av1"
+    except subprocess.CalledProcessError as e:
+        print(f"Error running FFmpeg: {e.stderr}")
+        return False
+    
+
+def convert_av1_to_h264(input_path, output_path=None):
+    """More reliable conversion with progress tracking"""
+    
+    if output_path is None:
+        base, ext = os.path.splitext(input_path)
+        output_path = f"{base}_converted.mp4"
+    
+    cmd = [
+        "ffmpeg",
+        "-y",  # Overwrite without asking
+        "-i", input_path,
+        "-c:v", "libx264",
+        "-preset", "medium",
+        "-crf", "22",
+        "-pix_fmt", "yuv420p",
+        "-movflags", "+faststart",
+        "-c:a", "aac",
+        "-b:a", "128k",
+        "-max_muxing_queue_size", "1024",  # Prevents muxer errors
+        output_path
+    ]
+    
+    try:
+        process = subprocess.Popen(
+            cmd,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            universal_newlines=True
+        )
+        
+        # Wait for completion with timeout (10 minutes)
+        _, stderr = process.communicate(timeout=600)
+        
+        if process.returncode != 0:
+            raise Exception(f"FFmpeg error: {stderr[:500]}...")            
+        return output_path
+    
+    except subprocess.TimeoutExpired:
+        process.kill()
+        raise Exception("Conversion timed out after 10 minutes")
+    except Exception as e:
+        if os.path.exists(output_path):
+            os.remove(output_path)
+        raise Exception(f"Conversion failed: {str(e)}") from e
+
 
 # Defining Helper Functions
 # Function for extracting video duration 
@@ -366,6 +431,11 @@ def enrich_shots(path, transcript_segments):
     Detects shot changes, analyzes frames, and generates LLM summaries including
     both labels and the transcript for that scene.
     """
+
+    # check if video is av1_encoded
+    if is_av1_encoded(path):
+        path = convert_av1_to_h264(path)
+
     with open(path, "rb") as f:
         content = f.read()
     req = vi.AnnotateVideoRequest(
@@ -476,8 +546,6 @@ def save_scenes(video_path, scenes):
     p = scene_path(video_path)
     with open(p, "w") as f:
         json.dump(scenes, f, indent=2)
-
-
 
 
 # generating Scene summaries in chunks
@@ -734,10 +802,6 @@ if uploaded:
             )
         else:
             st.info("Click **1️⃣ Transcribe Video** first.")
-
-
-
-    
 
 
     # tab1 for scene summaries 
