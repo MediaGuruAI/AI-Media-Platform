@@ -19,3 +19,5 @@ librosa
 speechbrain
 azure-cognitiveservices-speech
 streamlit-extras
+flask
+celery
