@@ -18,7 +18,7 @@ st.markdown("""
 <style>
     /* Main page styling */
     [data-testid="stAppViewContainer"] {
-        background: linear-gradient(135deg, #0f0c29, #302b63, #24243e) !important;
+        background: linear-gradient(11deg, #0c292070, #717054, #24243e) !important;
         color: white !important;
     }
     
@@ -27,6 +27,10 @@ st.markdown("""
         display: none;
     }
     
+    [data-testid="stMarkdownContainer"] p{
+    color: white;        
+    }
+
     /* Title styling */
     .title {
         font-size: 2.5rem !important;
@@ -201,6 +205,8 @@ st.markdown('<h1 class="title">🎨 Vision File Processor</h1>', unsafe_allow_ht
 
 # Back button
 if st.button("← Back to Main Page"):
+    st.session_state.processing_result = None
+    st.session_state.processing_status = "⚠️ Please upload a file first"
     st.switch_page("app.py")
 
 # Initialize session state
@@ -254,7 +260,8 @@ with col2:
                 data=json.dumps(st.session_state.processing_result, indent=2),
                 file_name="vision_results.json",
                 mime="application/json",
-                key="vision_download"
+                key="vision_download",
+                type="primary"
             )
         elif not st.session_state.processing_status:
             st.info("No results to display yet. Upload an image and click 'Process Image'.")

@@ -26,7 +26,7 @@ st.markdown("""
 <style>
     /* Main page styling */
     [data-testid="stAppViewContainer"] {
-        background: linear-gradient(135deg, #0f0c29, #302b63, #24243e) !important;
+        background: linear-gradient(11deg, #0c292070, #717054, #24243e) !important;
         color: white !important;
     }
     
@@ -37,7 +37,7 @@ st.markdown("""
     
     /* Title styling */
     .title {
-        font-size: 2.5rem !important;
+        font-size: 5rem !important;
         font-weight: 800;
         background: linear-gradient(90deg, #4ecdc4, #88f3e8);
         -webkit-background-clip: text;
@@ -98,6 +98,9 @@ st.markdown("""
         padding: 0.5rem 0;
     }
 
+    [data-testid="stMarkdownContainer"] p{
+            color: white;        
+    }
     [data-testid="stSidebar"] a:hover {
         color: #ff6b6b !important;
     }
@@ -113,7 +116,7 @@ st.markdown("""
         padding: 5px 10px !important;
         border-radius: 5px !important;
     }
-
+            
     .sidebar-toggle:hover {
         background: #ff6b6b !important;
     }
@@ -742,7 +745,7 @@ if uploaded:
     st.session_state.uploaded = video_path
     
 
-    if st.button("1️⃣ Transcribe Video"):
+    if st.button("1️⃣ Transcribe Video", type="primary"):
         full, segments = load_transcript(video_path)
         if full is not None:
             st.success("Loaded transcript from cache.")
@@ -754,8 +757,6 @@ if uploaded:
         st.session_state.transcript = full
         st.session_state.chunk_transcripts = segments
 
-    
-
 
 
     if duration > 240:  # 4 minutes
@@ -764,7 +765,7 @@ if uploaded:
     # Processing Buttons 
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("✨ Analyze Scenes"):
+        if st.button("✨ Analyze Scenes", type="primary"):
             with st.spinner():
                 # try cache first
                 cached = load_scenes(video_path)
@@ -783,14 +784,11 @@ if uploaded:
     # Defining tab setup
     tab0, tab1, tab6, tab2, tab5, tab3, tab4,  = st.tabs([
         "Transcription" , "Scene Breakdown", "Full video summary", "Semantic Search", 
-        "Promo Clip", "Banner Creator",  "Download metadata" 
+        "Promo Clip", "Banner Creator", "Download data" 
     ])
 
     st.session_state.setdefault("selected_scenes", [])
  
-
-
-
     with tab0:
         st.header("Full Transcript")
        
@@ -869,18 +867,11 @@ if uploaded:
 
 
     with tab3:
-        if st.button("🤖 Generate Modern Banner"):
+        if st.button("🤖 Generate Modern Banner", type="primary"):
             # Preconditions: scenes + text
             scenes = st.session_state.get('scenes', [])
             if not scenes:
                 st.error("⚠️ Run Scene Analysis first!")
-                st.stop()
-
-            # banner cache check
-            cached = load_banner(video_path)
-            if cached:
-                st.image(cached, caption="🎨 Cached Banner")
-                st.success("Loaded banner from cache.")
                 st.stop()
 
             # ensure transcript & full summary
@@ -946,14 +937,17 @@ if uploaded:
                     img_bytes = requests.get(out['url']).content
                     save_banner(video_path, img_bytes)
                     st.image(img_bytes, caption=banner_title)
-                    st.download_button("⬇ Download Banner", img_bytes, "banner.png", "image/png")
+                    st.download_button("⬇ Download Banner", 
+                                       img_bytes, 
+                                       "banner.png", 
+                                       "image/png",
+                                        type="primary")
                 else:
                     st.error("Missing image URL in response")
                     st.json(out)
             else:
                 st.error(f"Render failed ({resp.status_code})")
                 st.code(resp.text)
-
 
 
     # For downloading json file
@@ -974,36 +968,26 @@ if uploaded:
 
     with tab5:
         st.header("🎥 Promo Clip")
-        # First, check cache
-        cached = load_promo(st.session_state.uploaded)
-        if cached:
-            st.info("Loaded promo from cache.")
-            st.video(cached)
-            with open(cached, "rb") as f:
-                btn_data = f.read()
-            st.download_button("Download Cached Promo Clip", data=btn_data,
-                            file_name=os.path.basename(cached), mime="video/mp4")
-        else:
+        if st.button("Generate Promo", key="gen_promo"):
+            # First, check cache
             if st.session_state.selected_scenes:
                 st.subheader("Compile Selected Scenes into Promo")
-                if st.button("Generate Promo", key="gen_promo"):
-                    with st.spinner("Rendering promo clip..."):
-                        clips = []
-                        for idx in st.session_state.selected_scenes:
-                            sc = st.session_state.scenes[idx]
-                            clips.append(VideoFileClip(st.session_state.uploaded).subclipped(sc['start'], sc['end']))
-                        promo = concatenate_videoclips(clips)
-                        out_path = promo_path(st.session_state.uploaded)
-                        promo.write_videofile(out_path, codec="libx264", audio_codec="aac")
-                        st.success("Promo generated and saved to cache.")
-                        st.video(out_path)
-                        with open(out_path, "rb") as f:
-                            btn_data = f.read()
-                        st.download_button("Download Promo Clip", data=btn_data,
-                                        file_name=os.path.basename(out_path), mime="video/mp4")
+                with st.spinner("Rendering promo clip..."):
+                    clips = []
+                    for idx in st.session_state.selected_scenes:
+                        sc = st.session_state.scenes[idx]
+                        clips.append(VideoFileClip(st.session_state.uploaded).subclipped(sc['start'], sc['end']))
+                    promo = concatenate_videoclips(clips)
+                    out_path = promo_path(st.session_state.uploaded)
+                    promo.write_videofile(out_path, codec="libx264", audio_codec="aac")
+                    st.success("Promo generated")
+                    st.video(out_path)
+                    with open(out_path, "rb") as f:
+                        btn_data = f.read()
+                    st.download_button("Download Promo Clip", data=btn_data,
+                                    file_name=os.path.basename(out_path), mime="video/mp4")
             else:
-                st.info("Select scenes in the 'Semantic Search' tab to enable promo creation.")
-
+                st.info('Select scenes for promo generation')
 
     with tab6:
         if st.session_state.get("full_summary"):
@@ -1034,7 +1018,7 @@ if uploaded:
         
 
     # Cleanup
-    st.button("🧹 Clear All", on_click=lambda: [
+    st.button("🧹 Clear All", type="primary", on_click=lambda: [
         shutil.rmtree(temp_dir, ignore_errors=True),
         st.session_state.clear()
     ])

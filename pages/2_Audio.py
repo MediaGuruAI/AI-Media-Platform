@@ -16,10 +16,14 @@ st.markdown("""
 <style>
     /* Main page styling */
     [data-testid="stAppViewContainer"] {
-        background: linear-gradient(135deg, #0f0c29, #302b63, #24243e) !important;
+        background: linear-gradient(11deg, #0c292070, #717054, #24243e) !important;
         color: white !important;
     }
     
+    [data-testid="stMarkdownContainer"] p{
+        color: white;        
+    }
+
     /* Hide the default sidebar navigation */
     [data-testid="stSidebarNav"] {
         display: none;
@@ -166,6 +170,8 @@ st.markdown('<h1 class="title">🎵 Audio File Processor</h1>', unsafe_allow_htm
 
 # Back button
 if st.button("← Back to Main Page"):
+    st.session_state.processing_result = None
+    st.session_state.processing_status = "⚠️ Please upload a file first"
     st.switch_page("app.py")
 
 # Initialize session state variables
@@ -223,7 +229,8 @@ with col2:
                 data=json.dumps(st.session_state.processing_result, indent=2),
                 file_name=f"audio_results_{Path(file.name).stem}.json",
                 mime="application/json",
-                key="audio_download"
+                key="audio_download",
+                type="primary"
             )
         elif not st.session_state.status:
             st.info("No results to display yet. Upload an audio file and click 'Process Audio'.")
